@@ -1,0 +1,76 @@
+diff --git a/ares/sfc/cpu/cpu.cpp b/ares/sfc/cpu/cpu.cpp
+index db4d4ef4..4d2569af 100644
+--- a/ares/sfc/cpu/cpu.cpp
++++ b/ares/sfc/cpu/cpu.cpp
+@@ -3,6 +3,7 @@
+ namespace ares::SuperFamicom {
+ 
+ CPU cpu;
++OracleHooks oracleHooks;
+ #include "dma.cpp"
+ #include "memory.cpp"
+ #include "io.cpp"
+diff --git a/ares/sfc/cpu/timing.cpp b/ares/sfc/cpu/timing.cpp
+index 82b5dfa4..f7edc749 100644
+--- a/ares/sfc/cpu/timing.cpp
++++ b/ares/sfc/cpu/timing.cpp
+@@ -13,6 +13,7 @@ auto CPU::step(u32 clocks) -> void {
+   u32 ticks = clocks >> 1;
+   while(ticks--) {
+     counter.cpu += 2;
++    oracleHooks.cpuClocks += 2;
+     tick();
+     if(hcounter() & 2) nmiPoll(), irqPoll();
+     if(joypadCounter() == 0) joypadEdge();
+diff --git a/ares/sfc/oracle.hpp b/ares/sfc/oracle.hpp
+new file mode 100644
+index 00000000..00532cfd
+--- /dev/null
++++ b/ares/sfc/oracle.hpp
+@@ -0,0 +1,22 @@
++//test-oracle instrumentation (MAMR oracle patch, not part of upstream ares)
++//all members are inert unless a front end sets them.
++struct OracleHooks {
++  //absolute clock counters since power-on; Thread::clock() is rebased at
++  //every Scheduler::exit and cannot serve as a time stamp
++  u64 cpuClocks = 0;  //master clocks (21.477 MHz), counted per CPU::step tick
++  u64 smpClocks = 0;  //SMP clock units as passed to SMP::step
++
++  //start of scanline vdisp (225, or 240 with overscan), H=0; the SMP, DSP
++  //and PPU have been synchronized to the CPU
++  void (*frame)() = nullptr;
++  //an auto-joypad read begins (before the controllers are latched)
++  void (*joypad)() = nullptr;
++  //before each CPU instruction; pc is PB:PC
++  void (*instruction)(u32 pc) = nullptr;
++  //B-bus write to $2100-$21ff that reaches the PPU (CPU or DMA)
++  void (*ppuWrite)(u8 reg, u8 data) = nullptr;
++  //APU port write: smp=false for a CPU write to $2140-$217f, smp=true for
++  //an SMP write to $f4-$f7
++  void (*apuWrite)(bool smp, u8 port, u8 data) = nullptr;
++};
++extern OracleHooks oracleHooks;
+diff --git a/ares/sfc/sfc.hpp b/ares/sfc/sfc.hpp
+index aee7e8f0..bccfd9bd 100644
+--- a/ares/sfc/sfc.hpp
++++ b/ares/sfc/sfc.hpp
+@@ -27,6 +27,7 @@ namespace ares::SuperFamicom {
+     static inline auto PAL() -> bool;
+   };
+ 
++  #include <sfc/oracle.hpp>
+   #include <sfc/system/system.hpp>
+   #include <sfc/memory/memory.hpp>
+   #include <sfc/ppu/counter/counter.hpp>
+diff --git a/ares/sfc/smp/timing.cpp b/ares/sfc/smp/timing.cpp
+index fe27c9cf..15400198 100644
+--- a/ares/sfc/smp/timing.cpp
++++ b/ares/sfc/smp/timing.cpp
+@@ -20,6 +20,7 @@ inline auto SMP::wait(bool halve, maybe<n16> address) -> void {
+ }
+ 
+ inline auto SMP::step(u32 clocks) -> void {
++  oracleHooks.smpClocks += clocks;
+   Thread::step(clocks);
+   Thread::synchronize(cpu);
+   Thread::synchronize(dsp);

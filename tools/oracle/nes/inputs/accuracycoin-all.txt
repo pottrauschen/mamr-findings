@@ -1,0 +1,7 @@
+# AccuracyCoin: run every test of the ROM (README "Navigating the menus":
+# Start with the cursor at the top of the page). The menu reads the
+# controller once per frame in its NMI; the press waits for the menu.
+WAIT 30
+HOLD START
+WAIT 4
+RELEASE START

@@ -1,0 +1,33 @@
+diff --git a/ares/sfc/system/system.cpp b/ares/sfc/system/system.cpp
+index f8d12a37..5fdf9da9 100644
+--- a/ares/sfc/system/system.cpp
++++ b/ares/sfc/system/system.cpp
+@@ -19,6 +19,7 @@ auto load(Node::System& node, string name) -> bool {
+ auto option(string name, string value) -> bool {
+   if(name == "Pixel Accuracy") ppu.setAccurate(value.boolean());
+   if(name == "Deterministic Entropy") system.deterministicEntropy = value.boolean();
++  if(name == "Zero Entropy") system.zeroEntropy = value.boolean();
+   return true;
+ }
+ 
+@@ -132,6 +133,8 @@ auto System::power(bool reset) -> void {
+ 
+   random.entropy(Random::Entropy::Low);
+   if(deterministicEntropy) random.seed((n64)0);
++  //oracle patch: every power-on value is 0 (or the bias of random.bias())
++  if(zeroEntropy) random.entropy(Random::Entropy::None);
+ 
+   cpu.power(reset);
+   smp.power(reset);
+diff --git a/ares/sfc/system/system.hpp b/ares/sfc/system/system.hpp
+index 1c94640b..a2a5de45 100644
+--- a/ares/sfc/system/system.hpp
++++ b/ares/sfc/system/system.hpp
+@@ -2,6 +2,7 @@ struct System {
+   Node::System node;
+   VFS::Pak pak;
+   bool deterministicEntropy = false;
++  bool zeroEntropy = false;
+ 
+   struct Controls {
+     Node::Object node;

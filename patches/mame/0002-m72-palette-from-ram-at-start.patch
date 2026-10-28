@@ -1,0 +1,15 @@
+--- a/src/mame/irem/m72_v.cpp
++++ b/src/mame/irem/m72_v.cpp
+@@ -86,6 +86,12 @@
+ 
+ VIDEO_START_MEMBER(m72_state,m72)
+ {
++	// mameref: the colours come from the palette RAM, taken as zeros at
++	// power-on (its content on the board is not known); without this, pens
++	// never written keep the palette device's start-up rainbow (dipalette.cpp)
++	for (int i = 0; i < m_palette->entries(); i++)
++		m_palette->set_pen_color(i, rgb_t::black());
++
+ 	m_bg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(m72_state::get_bg_tile_info)), TILEMAP_SCAN_ROWS, 8,8, 64,64);
+ 	m_fg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(m72_state::get_fg_tile_info)), TILEMAP_SCAN_ROWS, 8,8, 64,64);
+ 

@@ -1,0 +1,85 @@
+diff --git a/ares/sfc/cpu/cpu.cpp b/ares/sfc/cpu/cpu.cpp
+index 90dc28e8..6f3d8c91 100644
+--- a/ares/sfc/cpu/cpu.cpp
++++ b/ares/sfc/cpu/cpu.cpp
+@@ -36,6 +36,14 @@ auto CPU::main() -> void {
+     if(oracleHooks.framePending) {
+       oracleHooks.framePending = false;
+       Thread::synchronize(ppu.thread());
++      //the SMP and the DSP are sampled on a copy (patch 0009): their state,
++      //thread stacks included, is saved here and restored after the frame
++      //hook, so that nothing they do ahead of this clock (a port write in
++      //the rest of an SMP instruction) becomes visible to the CPU
++      serializer saved;
++      smp.serialize(saved);
++      dsp.serialize(saved);
++      u64 smpClocks = oracleHooks.smpClocks;
+       //run the SMP to its first instruction boundary at or after this clock
+       //(the DSP follows the SMP in SMP::step). The CPU clock is moved far
+       //ahead meanwhile, so that the SMP's synchronize(cpu) calls do not
+@@ -43,10 +51,16 @@ auto CPU::main() -> void {
+       u64 now = clock();
+       oracleHooks.smpTarget = now;
+       oracleHooks.smpToBoundary = true;
++      oracleHooks.smpAhead = true;
+       setClock(now + (1ull << 60));
+       while(oracleHooks.smpToBoundary) co_switch(smp.handle());
+       setClock(now);
+       oracleHooks.frame();
++      serializer restore{saved.data(), saved.size()};
++      smp.serialize(restore);
++      dsp.serialize(restore);
++      oracleHooks.smpClocks = smpClocks;
++      oracleHooks.smpAhead = false;
+     }
+     if(oracleHooks.instruction) oracleHooks.instruction(r.pc.d);
+     return instruction();
+diff --git a/ares/sfc/oracle.hpp b/ares/sfc/oracle.hpp
+index aa86f391..7ba2b9bf 100644
+--- a/ares/sfc/oracle.hpp
++++ b/ares/sfc/oracle.hpp
+@@ -22,6 +22,10 @@ struct OracleHooks {
+   //value) and then switches back to the CPU
+   bool smpToBoundary = false;
+   u64 smpTarget = 0;
++  //set from the start of that run until the SMP and the DSP have been
++  //restored after the frame hook (patch 0009): the SMP's port writes in
++  //this time are undone and done again later, apuWrite is not called
++  bool smpAhead = false;
+   //an auto-joypad read begins (before the controllers are latched)
+   void (*joypad)() = nullptr;
+   //before each CPU instruction; pc is PB:PC
+diff --git a/ares/sfc/smp/io.cpp b/ares/sfc/smp/io.cpp
+index 022bdf17..6a6ae498 100644
+--- a/ares/sfc/smp/io.cpp
++++ b/ares/sfc/smp/io.cpp
+@@ -136,25 +136,25 @@ inline auto SMP::writeIO(n16 address, n8 data) -> void {
+ 
+   case 0xf4:  //CPUIO0
+     synchronize(cpu);
+-    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 0, data);
++    if(oracleHooks.apuWrite && !oracleHooks.smpAhead) oracleHooks.apuWrite(true, 0, data);
+     io.cpu0 = data;
+     break;
+ 
+   case 0xf5:  //CPUIO1
+     synchronize(cpu);
+-    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 1, data);
++    if(oracleHooks.apuWrite && !oracleHooks.smpAhead) oracleHooks.apuWrite(true, 1, data);
+     io.cpu1 = data;
+     break;
+ 
+   case 0xf6:  //CPUIO2
+     synchronize(cpu);
+-    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 2, data);
++    if(oracleHooks.apuWrite && !oracleHooks.smpAhead) oracleHooks.apuWrite(true, 2, data);
+     io.cpu2 = data;
+     break;
+ 
+   case 0xf7:  //CPUIO3
+     synchronize(cpu);
+-    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 3, data);
++    if(oracleHooks.apuWrite && !oracleHooks.smpAhead) oracleHooks.apuWrite(true, 3, data);
+     io.cpu3 = data;
+     break;
+ 

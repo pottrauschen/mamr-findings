@@ -1,0 +1,28 @@
+ares
+====
+
+No ares source file is included in this repository. The patches in
+patches/ares/ quote and change lines of ares source files at commit
+c76aaffa6e69778baf9a66d1da04298ac2ed7d1d
+(https://github.com/ares-emulator/ares); they are distributed under the
+ares licence below. tools/oracle/snes/aresref/aresref.cpp uses ares as a
+library and contains no ares code. The SNES documents under docs/ cite
+ares source files as one of several references, in their own words.
+
+----------------------------------------------------------------------
+ares
+
+Copyright (c) 2004-2025 ares team, Near et al
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+----------------------------------------------------------------------

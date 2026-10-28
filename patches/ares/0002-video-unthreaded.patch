@@ -1,0 +1,13 @@
+diff --git a/ares/ares/ares.hpp b/ares/ares/ares.hpp
+index 1d82199c..3cb54609 100644
+--- a/ares/ares/ares.hpp
++++ b/ares/ares/ares.hpp
+@@ -59,7 +59,7 @@ namespace ares {
+   }
+ 
+   namespace Video {
+-    static constexpr bool Threaded = true;
++    static constexpr bool Threaded = false;
+   }
+ 
+   namespace Constants {

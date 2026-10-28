@@ -1,0 +1,54 @@
+diff --git a/ares/sfc/cpu/cpu.cpp b/ares/sfc/cpu/cpu.cpp
+index f65a009e..90dc28e8 100644
+--- a/ares/sfc/cpu/cpu.cpp
++++ b/ares/sfc/cpu/cpu.cpp
+@@ -35,7 +35,17 @@ auto CPU::main() -> void {
+     debugger.instruction();
+     if(oracleHooks.framePending) {
+       oracleHooks.framePending = false;
+-      Thread::synchronize(smp, dsp, ppu.thread());
++      Thread::synchronize(ppu.thread());
++      //run the SMP to its first instruction boundary at or after this clock
++      //(the DSP follows the SMP in SMP::step). The CPU clock is moved far
++      //ahead meanwhile, so that the SMP's synchronize(cpu) calls do not
++      //yield; it is restored before the CPU continues.
++      u64 now = clock();
++      oracleHooks.smpTarget = now;
++      oracleHooks.smpToBoundary = true;
++      setClock(now + (1ull << 60));
++      while(oracleHooks.smpToBoundary) co_switch(smp.handle());
++      setClock(now);
+       oracleHooks.frame();
+     }
+     if(oracleHooks.instruction) oracleHooks.instruction(r.pc.d);
+diff --git a/ares/sfc/oracle.hpp b/ares/sfc/oracle.hpp
+index 052d210b..e7963c11 100644
+--- a/ares/sfc/oracle.hpp
++++ b/ares/sfc/oracle.hpp
+@@ -12,6 +12,11 @@ struct OracleHooks {
+   //CPU. framePending is set at that scanline and cleared at the boundary.
+   void (*frame)() = nullptr;
+   bool framePending = false;
++  //SMP sampling (patch 0007): while smpToBoundary is set the SMP runs to
++  //its first instruction boundary at or after smpTarget (a Thread::clock()
++  //value) and then switches back to the CPU
++  bool smpToBoundary = false;
++  u64 smpTarget = 0;
+   //an auto-joypad read begins (before the controllers are latched)
+   void (*joypad)() = nullptr;
+   //before each CPU instruction; pc is PB:PC
+diff --git a/ares/sfc/smp/smp.cpp b/ares/sfc/smp/smp.cpp
+index 5c0df436..57b029a0 100644
+--- a/ares/sfc/smp/smp.cpp
++++ b/ares/sfc/smp/smp.cpp
+@@ -21,6 +21,10 @@ auto SMP::unload() -> void {
+ }
+ 
+ auto SMP::main() -> void {
++  if(oracleHooks.smpToBoundary && clock() >= oracleHooks.smpTarget) {
++    oracleHooks.smpToBoundary = false;
++    co_switch(cpu.handle());
++  }
+   if(r.wait) return instructionWait();
+   if(r.stop) return instructionStop();
+ 

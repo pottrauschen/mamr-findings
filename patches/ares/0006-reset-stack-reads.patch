@@ -1,0 +1,23 @@
+diff --git a/ares/component/processor/wdc65816/instruction.cpp b/ares/component/processor/wdc65816/instruction.cpp
+index 1d39fa2c..b5b5b854 100644
+--- a/ares/component/processor/wdc65816/instruction.cpp
++++ b/ares/component/processor/wdc65816/instruction.cpp
+@@ -1,10 +1,18 @@
+ auto WDC65816::interrupt() -> void {
+   read(PC.d);
+   idle();
++  //oracle patch: during reset the stack cycles are read cycles, RWB stays
++  //high (WDC W65C816S datasheet, section 2.25 and table 5-7); S is
++  //decremented as for the pushes
++  if(r.vector == 0xfffc) {
++  N { read(S.w); S.w--; }
++    for(u32 n : range(3)) { read(S.w); EF ? (void)S.l-- : (void)S.w--; }
++  } else {
+ N push(PC.b);
+   push(PC.h);
+   push(PC.l);
+   push(EF ? P & ~0x10 : P);
++  }
+   IF = 1;
+   DF = 0;
+   PC.l = read(r.vector + 0);

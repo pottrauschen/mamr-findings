@@ -1,0 +1,17 @@
+--- a/src/mame/snk/snk.cpp
++++ b/src/mame/snk/snk.cpp
+@@ -4251,7 +4251,13 @@
+ 	Z80(config, m_audiocpu, 8_MHz_XTAL/2); /* verified on pcb */
+ 	m_audiocpu->set_addrmap(AS_PROGRAM, &ikari_state::YM3526_YM3526_sound_map);
+ 
+-	config.set_maximum_quantum(attotime::from_hz(6000));
++	// mameref: CPU A and CPU B share one clock and one bus on the board, so
++	// interleave the CPUs by single cycles instead of 1/6000 s slices; the
++	// environment variable MAMEREF_IKARI_STOCK_QUANTUM restores the original.
++	if (getenv("MAMEREF_IKARI_STOCK_QUANTUM"))
++		config.set_maximum_quantum(attotime::from_hz(6000));
++	else
++		config.set_perfect_quantum(m_maincpu);
+ 
+ 	/* video hardware */
+ 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);

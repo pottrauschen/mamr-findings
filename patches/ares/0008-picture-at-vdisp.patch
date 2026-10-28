@@ -1,0 +1,28 @@
+--- a/ares/sfc/oracle.hpp
++++ b/ares/sfc/oracle.hpp
+@@ -12,6 +12,11 @@
+   //CPU. framePending is set at that scanline and cleared at the boundary.
+   void (*frame)() = nullptr;
+   bool framePending = false;
++  //the start of that scanline, from CPU::scanline after the PPU has been
++  //synchronized to the CPU: the lines before it are drawn and the PPU has not
++  //run its code for the line yet (at V=240 that code swaps the picture
++  //buffers), so the front end takes its copy of the picture here
++  void (*picture)() = nullptr;
+   //SMP sampling (patch 0007): while smpToBoundary is set the SMP runs to
+   //its first instruction boundary at or after smpTarget (a Thread::clock()
+   //value) and then switches back to the CPU
+--- a/ares/sfc/cpu/timing.cpp
++++ b/ares/sfc/cpu/timing.cpp
+@@ -78,7 +78,10 @@
+     status.hdmaTriggered = 0;
+   }
+ 
+-  if(vcounter() == (ppu.overscan() ? 240 : 225) && oracleHooks.frame) oracleHooks.framePending = true;
++  if(vcounter() == (ppu.overscan() ? 240 : 225) && oracleHooks.frame) {
++    oracleHooks.framePending = true;
++    if(oracleHooks.picture) oracleHooks.picture();
++  }
+ }
+ 
+ alwaysinline auto CPU::aluEdge() -> void {

@@ -1,0 +1,72 @@
+Material derived from MAME
+==========================
+
+No MAME source file is included in this repository. The following files
+quote, change or restate specific MAME source files closely enough to
+count as derived work (MAME release tags mame0285 and mame0289,
+https://github.com/mamedev/mame):
+
+  patches/mame/0001-ikari-cycle-interleave.patch
+      quotes and changes lines of src/mame/snk/snk.cpp (mame0285)
+      copyright-holders: Ernesto Corvi, Tim Lindquist, Carlos A. Lozano,
+      Bryan McPhail, Jarek Parchanski, Nicola Salmoria, Tomasz Slanina,
+      Phil Stroffolino, Acho A. Tang, Victor Trucco
+
+  patches/mame/0002-m72-palette-from-ram-at-start.patch
+      quotes and changes lines of src/mame/irem/m72_v.cpp (mame0285)
+      copyright-holders: Nicola Salmoria
+
+  patches/mame/0003-nec-rep-continuation-no-double-charge.patch
+      quotes and changes lines of src/devices/cpu/nec/necinstr.hxx (mame0285)
+      copyright-holders: Bryan McPhail
+
+  tools/oracle/spang/kabuki.py (the Kabuki decryption as kabuki.cpp
+  writes it: the two bit-pair swap functions, the byte decode and the key
+  set of the Super Pang World set), and the same keys where
+  docs/spang-hardware-spec.md lists them
+      after src/mame/capcom/kabuki.cpp (mame0285)
+      copyright-holders: Nicola Salmoria
+
+  tools/oracle/arcade/z80steps.py reads src/devices/cpu/z80/z80.lst
+  (mame0285) as data at run time; the step tables it prints or writes are
+  derived from that file
+      copyright-holders: Juergen Buchmueller, Andrei I. Holub
+
+The documents under docs/ describe the behaviour of MAME drivers and
+devices in their own words and cite MAME source files and line numbers;
+they contain no MAME code beyond identifiers and single expressions.
+
+Each MAME file named above carries the BSD 3-Clause licence, reproduced
+below. MAME as a whole is distributed under the GPL version 2 or later;
+the files named above are individually BSD 3-Clause licensed.
+
+----------------------------------------------------------------------
+
+Copyright (c) the MAME team and the copyright holders named above
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.

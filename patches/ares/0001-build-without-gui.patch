@@ -1,0 +1,44 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0cb69e93..8fcacd61 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,8 +12,10 @@ add_subdirectory(thirdparty)
+ 
+ add_subdirectory(nall/nall)
+ add_subdirectory(libco)
+-add_subdirectory(ruby)
+-add_subdirectory(hiro)
++if(NOT ARESREF_SOURCE_DIR)
++  add_subdirectory(ruby)
++  add_subdirectory(hiro)
++endif()
+ 
+ # gersemi: off
+ set(
+@@ -25,7 +27,9 @@ set(
+ 
+ add_subdirectory(ares)
+ add_subdirectory(mia)
+-add_subdirectory(desktop-ui)
++if(NOT ARESREF_SOURCE_DIR)
++  add_subdirectory(desktop-ui)
++endif()
+ 
+ option(ARES_BUILD_OPTIONAL_TARGETS "Include supplemental tools and tests" OFF)
+ 
+@@ -51,9 +55,14 @@ else()
+ endif()
+ 
+ add_subdirectory(tools/sourcery)
++if(ARESREF_SOURCE_DIR)
++  add_subdirectory(${ARESREF_SOURCE_DIR} aresref)
++endif()
+ 
+ message_configuration()
+ 
+-add_subdirectory(.github)
++if(NOT ARESREF_SOURCE_DIR)
++  add_subdirectory(.github)
++endif()
+ add_subdirectory(cmake)
+ return()

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Build trees and judge checkouts
+build/
+build-*/
+
+# Never commit ROMs, ROM sets or outputs of runs with them
+roms/
+*.sfc
+*.smc
+*.nes
+*.zip
+*.hash
+*.miss
+*.replay
+*.wav
+
+# Editors and OS
+.DS_Store
+*.swp
+*~

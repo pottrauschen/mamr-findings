@@ -1,0 +1,137 @@
+diff --git a/ares/sfc/cpu/cpu.cpp b/ares/sfc/cpu/cpu.cpp
+index 4d2569af..f65a009e 100644
+--- a/ares/sfc/cpu/cpu.cpp
++++ b/ares/sfc/cpu/cpu.cpp
+@@ -33,6 +33,12 @@ auto CPU::main() -> void {
+ 
+   if(!status.interruptPending) {
+     debugger.instruction();
++    if(oracleHooks.framePending) {
++      oracleHooks.framePending = false;
++      Thread::synchronize(smp, dsp, ppu.thread());
++      oracleHooks.frame();
++    }
++    if(oracleHooks.instruction) oracleHooks.instruction(r.pc.d);
+     return instruction();
+   }
+ 
+diff --git a/ares/sfc/cpu/cpu.hpp b/ares/sfc/cpu/cpu.hpp
+index 5a29b3a0..a7132aed 100644
+--- a/ares/sfc/cpu/cpu.hpp
++++ b/ares/sfc/cpu/cpu.hpp
+@@ -89,7 +89,7 @@ struct CPU : WDC65816, Thread, PPUcounter {
+   std::vector<Thread*> coprocessors;
+   std::vector<Thread*> peripherals;
+ 
+-private:
++//private: (opened by the oracle patch: the oracle front end reads io)
+   struct Counter {
+     u32 cpu = 0;
+     u32 dma = 0;
+diff --git a/ares/sfc/cpu/io.cpp b/ares/sfc/cpu/io.cpp
+index c6aa3b82..67b87520 100644
+--- a/ares/sfc/cpu/io.cpp
++++ b/ares/sfc/cpu/io.cpp
+@@ -95,6 +95,7 @@ auto CPU::writeRAM(n24 address, n8 data) -> void {
+ 
+ auto CPU::writeAPU(n24 address, n8 data) -> void {
+   synchronize(smp);
++  if(oracleHooks.apuWrite) oracleHooks.apuWrite(false, address.bit(0,1), data);
+   return smp.portWrite(address.bit(0,1), data);
+ }
+ 
+diff --git a/ares/sfc/cpu/timing.cpp b/ares/sfc/cpu/timing.cpp
+index f7edc749..4ae79075 100644
+--- a/ares/sfc/cpu/timing.cpp
++++ b/ares/sfc/cpu/timing.cpp
+@@ -77,6 +77,8 @@ auto CPU::scanline() -> void {
+     status.hdmaPosition = 1104;
+     status.hdmaTriggered = 0;
+   }
++
++  if(vcounter() == (ppu.overscan() ? 240 : 225) && oracleHooks.frame) oracleHooks.framePending = true;
+ }
+ 
+ alwaysinline auto CPU::aluEdge() -> void {
+@@ -155,6 +157,7 @@ alwaysinline auto CPU::joypadEdge() -> void {
+   if(status.autoJoypadCounter == 0) {
+     //latch controller states on the first polling cycle
+     //TODO: this may need to happen one cycle earlier
++    if(io.autoJoypadPoll && oracleHooks.joypad) oracleHooks.joypad();
+     status.autoJoypadLatch = io.autoJoypadPoll;
+     controllerPort1.latch(status.autoJoypadLatch | status.cpuLatch);
+     controllerPort2.latch(status.autoJoypadLatch | status.cpuLatch);
+diff --git a/ares/sfc/oracle.hpp b/ares/sfc/oracle.hpp
+index 00532cfd..052d210b 100644
+--- a/ares/sfc/oracle.hpp
++++ b/ares/sfc/oracle.hpp
+@@ -6,9 +6,12 @@ struct OracleHooks {
+   u64 cpuClocks = 0;  //master clocks (21.477 MHz), counted per CPU::step tick
+   u64 smpClocks = 0;  //SMP clock units as passed to SMP::step
+ 
+-  //start of scanline vdisp (225, or 240 with overscan), H=0; the SMP, DSP
+-  //and PPU have been synchronized to the CPU
++  //sampling point: the first CPU instruction boundary (before an opcode
++  //fetch) at or after the start of scanline 225 (240 when overscan was
++  //latched at V=0), H=0; the SMP, DSP and PPU have been synchronized to the
++  //CPU. framePending is set at that scanline and cleared at the boundary.
+   void (*frame)() = nullptr;
++  bool framePending = false;
+   //an auto-joypad read begins (before the controllers are latched)
+   void (*joypad)() = nullptr;
+   //before each CPU instruction; pc is PB:PC
+diff --git a/ares/sfc/ppu/io.cpp b/ares/sfc/ppu/io.cpp
+index e6085fc5..13a54140 100644
+--- a/ares/sfc/ppu/io.cpp
++++ b/ares/sfc/ppu/io.cpp
+@@ -186,6 +186,7 @@ auto PPU::readIO(n24 address, n8 data) -> n8 {
+ 
+ auto PPU::writeIO(n24 address, n8 data) -> void {
+   cpu.synchronize(ppu);
++  if(oracleHooks.ppuWrite) oracleHooks.ppuWrite((n8)address, data);
+ 
+   switch((n16)address) {
+ 
+diff --git a/ares/sfc/smp/io.cpp b/ares/sfc/smp/io.cpp
+index c1eefb31..022bdf17 100644
+--- a/ares/sfc/smp/io.cpp
++++ b/ares/sfc/smp/io.cpp
+@@ -136,21 +136,25 @@ inline auto SMP::writeIO(n16 address, n8 data) -> void {
+ 
+   case 0xf4:  //CPUIO0
+     synchronize(cpu);
++    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 0, data);
+     io.cpu0 = data;
+     break;
+ 
+   case 0xf5:  //CPUIO1
+     synchronize(cpu);
++    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 1, data);
+     io.cpu1 = data;
+     break;
+ 
+   case 0xf6:  //CPUIO2
+     synchronize(cpu);
++    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 2, data);
+     io.cpu2 = data;
+     break;
+ 
+   case 0xf7:  //CPUIO3
+     synchronize(cpu);
++    if(oracleHooks.apuWrite) oracleHooks.apuWrite(true, 3, data);
+     io.cpu3 = data;
+     break;
+ 
+diff --git a/ares/sfc/smp/smp.hpp b/ares/sfc/smp/smp.hpp
+index dce768cf..5e4c7edb 100644
+--- a/ares/sfc/smp/smp.hpp
++++ b/ares/sfc/smp/smp.hpp
+@@ -31,7 +31,7 @@ struct SMP : SPC700, Thread {
+ 
+   n8 iplrom[64];
+ 
+-private:
++//private: (opened by the oracle patch: the oracle front end reads io and the timers)
+   struct IO {
+     //timing
+     u32 clockCounter = 0;

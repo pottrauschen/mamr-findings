@@ -1,0 +1,15 @@
+--- a/src/devices/cpu/nec/necinstr.hxx
++++ b/src/devices/cpu/nec/necinstr.hxx
+@@ -25,6 +25,12 @@
+ 	const uint8_t next = m_rep_params >> 8 & 0xff;
+ 	m_rep_params = 0;
+ 
++	// mameref: do_rep* below charges the 2 clocks of the REP start again;
++	// they were charged when the instruction started (the chip has no
++	// time slices), so give them back first
++	m_icount += 2;
++	m_cur_cycles -= 2;
++
+ 	// continue REP loop where it left off
+ 	switch(opcode) {
+ 		case 0: do_repnc(next); break;

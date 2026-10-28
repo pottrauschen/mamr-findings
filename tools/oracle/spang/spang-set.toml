@@ -1,0 +1,81 @@
+# Super Pang, ROM set `spang` (World 900914, MAME parent set), MAME 0.285
+# (src/mame/capcom/mitchell.cpp, ROM_START( spang )): the files of the set
+# by name, size, CRC-32 and SHA-1, and the Kabuki keys. Hashes only, no ROM
+# data. romset.py, kabuki.py and gates.py read this file.
+#
+# The set circulates with older file names (spe_06.rom, 03.f2, ...);
+# romset.py finds every file by name first and then by size and SHA-1, so
+# either naming works.
+#
+# The Kabuki keys are the World set's row of the table in MAME 0.285
+# src/mame/capcom/kabuki.cpp (spang_decode), BSD 3-Clause, copyright
+# Nicola Salmoria (third_party/mame/LICENSE).
+
+[set]
+name = "spang"
+title = "Super Pang"
+
+# Main CPU: the Kabuki, a Z80 with built-in decryption (spec section 4).
+# The 0x50000-byte region holds the fixed ROM at 0x00000 (Z80
+# 0x0000-0x7FFF) and sixteen 16 KiB banks at 0x10000, switched into the
+# window 0x8000-0xBFFF by port 0x02 bits 0-3. MAME decrypts each bank as
+# if it sat at Z80 address 0x8000 (kabuki.cpp mitchell_decode), so every
+# bank has the base address `window`.
+#
+# The Kabuki gives two views of every ROM byte: the opcode view for M1
+# fetches (opcode and prefix bytes) and the data view for every other read
+# (operands, displacements, data). The keys are the World set's row of
+# the table in MAME kabuki.cpp (spang_decode); the regional sets have
+# their own keys.
+[[cpu]]
+isa = "z80-banked"
+region = "maincpu"
+image_size = 0x50000
+files = [
+    { file = "spe_06.11h", offset = 0x00000, size = 0x08000, crc32 = 0x1af106fb, sha1 = "476ba5c95e090663a47d3f98451bf3b79bac7748" },
+    { file = "spe_07.13h", offset = 0x10000, size = 0x20000, crc32 = 0x208b5f54, sha1 = "9d44f7240b56756dcb69d110036b1cb13b1bbc02" },
+    { file = "spe_08.14h", offset = 0x30000, size = 0x20000, crc32 = 0x2bc03ade, sha1 = "3a8ee342b0556a8f6d5a417c98e5c3c43422713d" },
+]
+fixed = { offset = 0x00000, size = 0x8000 }
+banks = { offset = 0x10000, count = 16, size = 0x4000, window = 0x8000 }
+kabuki = { swap_key1 = 0x45670123, swap_key2 = 0x45670123, addr_key = 0x5852, xor_key = 0x43 }
+nmi = false
+
+# Graphics, samples and the EEPROM default as MAME lays the regions out.
+# chars: ROMREGION_ERASEFF, 0x40000-0x7FFFF and 0xC0000-0xFFFFF stay 0xFF
+# (a region is filled with `fill` before the files are loaded).
+[[region]]
+name = "chars"
+size = 0x100000
+fill = 0xFF
+files = [
+    { file = "spe_02.1e", offset = 0x000000, size = 0x20000, crc32 = 0x63c9dfd2, sha1 = "ddc8ddee336855e857fb3124c8b64af33c2d0080" },
+    { file = "spj_03.3e", offset = 0x020000, size = 0x20000, crc32 = 0x3ae28bc1, sha1 = "4f6d9a86f624598ebc0825b50941adfb7436e98a" },
+    { file = "spe_04.1g", offset = 0x080000, size = 0x20000, crc32 = 0x9d7b225b, sha1 = "d949c91da6ba6b82df0b3445499761a98c7e2703" },
+    { file = "spj_05.2g", offset = 0x0a0000, size = 0x20000, crc32 = 0x4a060884, sha1 = "f83d713aee4230fc04a1d5f1d4d79c64a5bf2753" },
+]
+
+[[region]]
+name = "sprites"
+size = 0x40000
+files = [
+    { file = "spj_10.2k", offset = 0x000000, size = 0x20000, crc32 = 0xeedd0ade, sha1 = "f2da2eb743c68c5c9a56a94709527110cef5d91d" },
+    { file = "spj_09.1k", offset = 0x020000, size = 0x20000, crc32 = 0x04b41b75, sha1 = "946ed04a17f1f71085143d43905aa310ce1e05f4" },
+]
+
+# OKI MSM6295 samples: a 512 KiB region, two 256 KiB banks (gfxctrl bit
+# 4); only the first 128 KiB are populated, the rest reads 0.
+[[region]]
+name = "oki"
+size = 0x80000
+files = [
+    { file = "spe_01.1d", offset = 0x00000, size = 0x20000, crc32 = 0x2d19c133, sha1 = "b3ec226f35494dfc259e910895cec8a49dd2f846" },
+]
+
+# 93C46 default contents, 64 big-endian 16-bit words (ROM_REGION16_BE).
+[[region]]
+name = "eeprom"
+size = 0x80
+files = [
+    { file = "eeprom-spang.bin", offset = 0x0000, size = 0x0080, crc32 = 0xdeae1291, sha1 = "f62f2ad99852903f1cea3f8c1f69fc11e4e7b48b" },
+]
